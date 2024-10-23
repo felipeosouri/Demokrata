@@ -38,23 +38,51 @@ namespace UserManagementApi.Controllers
         }
 
         [HttpGet("search")]
-        public async Task<IActionResult> Search([FromQuery] string? firstName, [FromQuery] string? lastName, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        public async Task<IActionResult> Search(
+            [FromQuery] string? primerNombre = null,
+            [FromQuery] string? primerApellido = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
         {
+            if (page <= 0 || pageSize <= 0)
+            {
+                return BadRequest("Page and pageSize must be greater than 0.");
+            }
+
+            // Construcción dinámica de la consulta con filtros opcionales
             var query = _context.Users.AsQueryable();
 
-            if (!string.IsNullOrEmpty(firstName))
-                query = query.Where(u => u.PrimerNombre.Contains(firstName));
+            if (!string.IsNullOrWhiteSpace(primerNombre))
+            {
+                query = query.Where(u => EF.Functions.Like(u.PrimerNombre, $"%{primerNombre}%"));
+            }
 
-            if (!string.IsNullOrEmpty(lastName))
-                query = query.Where(u => u.PrimerApellido.Contains(lastName));
+            if (!string.IsNullOrWhiteSpace(primerApellido))
+            {
+                query = query.Where(u => EF.Functions.Like(u.PrimerApellido, $"%{primerApellido}%"));
+            }
+
+            // Obtener el total de registros para la paginación
+            var totalRecords = await query.CountAsync();
 
             var users = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
-            return Ok(users);
+            // Crear un objeto de respuesta con la lista y la paginación
+            var response = new
+            {
+                Data = users,
+                Page = page,
+                PageSize = pageSize,
+                TotalRecords = totalRecords,
+                TotalPages = (int)Math.Ceiling(totalRecords / (double)pageSize)
+            };
+
+            return Ok(response);
         }
+
 
         [HttpPost]
         public async Task<IActionResult> Create(UserDto userDto)
