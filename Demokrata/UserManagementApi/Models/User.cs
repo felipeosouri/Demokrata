@@ -26,7 +26,10 @@ namespace UserManagementApi.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal Salario { get; set; }
 
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public DateTime FechaCreacion { get; set; } = DateTime.Now;
+
+        [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
         public DateTime? FechaModificacion { get; set; }
     }
 }
